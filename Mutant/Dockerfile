@@ -1,27 +1,14 @@
-# Usa una imagen base de Gradle con JDK 17
-FROM gradle:7.3.3-jdk17 AS build
+FROM alpine:latest as build
 
-# Establece el directorio de trabajo
-WORKDIR /app
+RUN apk update
+RUN apk add openjdk17
 
-# Copia los archivos de construcción y el código fuente
-COPY build.gradle settings.gradle /app/
-COPY src /app/src
+COPY . .
+RUN chmod +x ./gradlew
+RUN ./gradlew bootJar --no-daemon
 
-# Construye el proyecto
-RUN gradle build --no-daemon
+FROM openjdk:17-alpine
+EXPOSE 9000
+COPY --from=build ./build/libs/demo-app-0.0.1-SNAPSHOT.jar ./app.jar
 
-# Usa una imagen base de JDK 17 para ejecutar la aplicación
-FROM openjdk:17-jre-slim
-
-# Establece el directorio de trabajo
-WORKDIR /app
-
-# Copia el archivo JAR generado desde la etapa de construcción
-COPY --from=build /app/build/libs/*.jar app.jar
-
-# Expone el puerto en el que la aplicación se ejecutará
-EXPOSE 8080
-
-# Comando para ejecutar la aplicación
 ENTRYPOINT ["java", "-jar", "app.jar"]
